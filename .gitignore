@@ -1,0 +1,14 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.pytest_cache/
+prompt.md
+*.png
+quantum_results*.png
+
+.idea/
+.vscode/
+.DS_Store
