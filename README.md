@@ -4,6 +4,21 @@ Simulador de circuitos quanticos em Python puro, com NumPy + Matplotlib.
 Suporta criacao de qubits, portas Hadamard / Pauli-X / Y / Z / Phase / CNOT,
 medicao com colapso de estado, execucao em N shots e visualizacao.
 
+## Demo online
+
+Versao web interativa (Streamlit): **https://quantum-simulator-mn4xtizdzeqyzvcli9xsa2.streamlit.app/**
+
+Permite escolher exemplos prontos (Bell, GHZ, superposicao), montar circuitos
+custom, ajustar shots e ver vetor de estado, probabilidades teoricas e
+contagens empiricas lado a lado.
+
+Para rodar localmente:
+
+```bash
+pip install -r requirements.txt
+streamlit run app.py
+```
+
 ## Instalacao
 
 ```bash

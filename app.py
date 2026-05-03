@@ -58,6 +58,46 @@ EXAMPLES = {
 }
 
 
+EXPLANATIONS = {
+    "bell": (
+        "**Bell state** é o exemplo canônico de **emaranhamento**. "
+        "Aplicando `H` no qubit 0 cria-se superposição `(|0⟩+|1⟩)/√2`; o `CNOT(0,1)` "
+        "amarra os dois qubits. Resultado: só `|00⟩` ou `|11⟩` aparecem nas medições — "
+        "nunca `|01⟩` ou `|10⟩`. Os qubits estão **correlacionados**: medir um determina o outro, "
+        "mesmo distantes."
+    ),
+    "ghz": (
+        "**GHZ state** estende o Bell para 3 qubits: `(|000⟩+|111⟩)/√2`. "
+        "Toda a tripla está emaranhada — medir qualquer qubit colapsa os outros dois. "
+        "Usado em testes de não-localidade (desigualdades de Bell/Mermin) e como recurso em protocolos quânticos."
+    ),
+    "super": (
+        "**Superposição uniforme** aplica `H` em cada qubit. Cada estado de base "
+        "(`|00⟩`, `|01⟩`, `|10⟩`, `|11⟩` para 2 qubits) tem probabilidade idêntica `1/2^N`. "
+        "Sem emaranhamento — cada qubit é independente. Base de algoritmos como Grover e Deutsch-Jozsa, "
+        "que partem de superposição uniforme antes de aplicar oráculos."
+    ),
+    "custom": (
+        "**Circuito custom** — você define a sequência. As portas atuam no vetor de estado conjunto "
+        "como matrizes unitárias. Experimente: dois `H` em sequência cancelam (`H·H = I`); "
+        "`X` antes de `H` muda a fase relativa; `CNOT` entre qubits em superposição cria emaranhamento."
+    ),
+}
+
+
+GLOSSARY = """
+- **Vetor de estado** — descrição completa do sistema. Para `N` qubits tem `2^N` amplitudes complexas.
+  Cada amplitude `α` está associada a um estado de base; `|α|²` é a probabilidade de medir aquele estado.
+- **Probabilidade teórica** — `|α|²` calculado direto do vetor de estado. É o valor exato (ideal).
+- **Shots / medições** — cada shot recria o circuito, mede e colapsa o estado. Mais shots = estatística empírica
+  mais próxima da teórica (lei dos grandes números).
+- **Empírico vs teórico** — para 1000 shots, ruído estatístico é ~3%. Ideal: empírico converge à probabilidade
+  teórica conforme `shots → ∞`.
+- **Portas (`H`, `X`, `Y`, `Z`, `P`, `CNOT`)** — operações unitárias. `H` cria superposição, Paulis são rotações,
+  `P(θ)` aplica fase em `|1⟩`, `CNOT` emaranha control e target.
+"""
+
+
 st.title("⚛️ Quantum Circuit Simulator")
 st.caption("Simulador de circuitos quânticos em Python puro — NumPy + Matplotlib.")
 
@@ -153,6 +193,9 @@ if run:
             st.stop()
         circuit = build_custom(num_qubits, custom_ops)
 
+    st.markdown("### 📖 O que esse circuito faz")
+    st.markdown(EXPLANATIONS[kind])
+
     col_left, col_right = st.columns([1, 1])
 
     with col_left:
@@ -197,5 +240,8 @@ if run:
             hide_index=True,
             use_container_width=True,
         )
+
+    with st.expander("📚 Glossário rápido"):
+        st.markdown(GLOSSARY)
 else:
     st.info("👈 Escolha um exemplo na barra lateral e clique em **Executar circuito**.")
