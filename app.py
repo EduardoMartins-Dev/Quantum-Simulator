@@ -221,14 +221,19 @@ if run:
         states = [k for k, _ in items]
         counts = [v for _, v in items]
 
-        fig, ax = plt.subplots(figsize=(8, 5))
-        ax.bar(states, counts, color="#2E75B6", edgecolor="black")
-        ax.set_xlabel("Estado")
-        ax.set_ylabel("Contagens")
-        ax.grid(axis="y", alpha=0.3)
+        plt.style.use("dark_background")
+        fig, ax = plt.subplots(figsize=(8, 5), facecolor="#0E1117")
+        ax.set_facecolor("#0E1117")
+        ax.bar(states, counts, color="#4FA3E0", edgecolor="#FAFAFA")
+        ax.set_xlabel("Estado", color="#FAFAFA")
+        ax.set_ylabel("Contagens", color="#FAFAFA")
+        ax.tick_params(colors="#FAFAFA")
+        for spine in ax.spines.values():
+            spine.set_color("#FAFAFA")
+        ax.grid(axis="y", alpha=0.2)
         total = sum(counts)
         for i, c in enumerate(counts):
-            ax.text(i, c, f"{100 * c / total:.1f}%", ha="center", va="bottom")
+            ax.text(i, c, f"{100 * c / total:.1f}%", ha="center", va="bottom", color="#FAFAFA")
         plt.tight_layout()
         st.pyplot(fig)
         plt.close(fig)
