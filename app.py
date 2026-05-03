@@ -1,0 +1,201 @@
+"""Streamlit web UI for the quantum circuit simulator."""
+import io
+
+import matplotlib.pyplot as plt
+import numpy as np
+import streamlit as st
+
+from core.circuit import QuantumCircuit
+from simulator.runner import QuantumSimulator
+
+
+st.set_page_config(page_title="Quantum Simulator", page_icon="⚛️", layout="wide")
+
+
+def build_bell() -> QuantumCircuit:
+    c = QuantumCircuit(2)
+    c.hadamard(0).cnot(0, 1)
+    return c
+
+
+def build_ghz() -> QuantumCircuit:
+    c = QuantumCircuit(3)
+    c.hadamard(0).cnot(0, 1).cnot(1, 2)
+    return c
+
+
+def build_superposition(n: int) -> QuantumCircuit:
+    c = QuantumCircuit(n)
+    for i in range(n):
+        c.hadamard(i)
+    return c
+
+
+def build_custom(num_qubits: int, ops: list) -> QuantumCircuit:
+    c = QuantumCircuit(num_qubits)
+    for op in ops:
+        name = op["gate"]
+        if name == "H":
+            c.hadamard(op["q"])
+        elif name == "X":
+            c.pauli_x(op["q"])
+        elif name == "Y":
+            c.pauli_y(op["q"])
+        elif name == "Z":
+            c.pauli_z(op["q"])
+        elif name == "P":
+            c.phase(op["q"], op["theta"])
+        elif name == "CNOT":
+            c.cnot(op["control"], op["target"])
+    return c
+
+
+EXAMPLES = {
+    "Bell state (|00⟩+|11⟩)/√2": ("bell", None),
+    "GHZ state (|000⟩+|111⟩)/√2": ("ghz", None),
+    "Superposição uniforme (N qubits)": ("super", None),
+    "Circuito custom": ("custom", None),
+}
+
+
+st.title("⚛️ Quantum Circuit Simulator")
+st.caption("Simulador de circuitos quânticos em Python puro — NumPy + Matplotlib.")
+
+with st.sidebar:
+    st.header("Configuração")
+    choice = st.selectbox("Exemplo", list(EXAMPLES.keys()))
+    kind, _ = EXAMPLES[choice]
+
+    if kind == "super":
+        num_qubits = st.slider("Número de qubits", 1, 6, 2)
+    elif kind == "custom":
+        num_qubits = st.slider("Número de qubits", 1, 6, 2)
+    else:
+        num_qubits = None
+
+    shots = st.slider("Shots (medições)", 100, 5000, 1000, step=100)
+    seed = st.number_input("Seed (0 = aleatório)", min_value=0, value=0, step=1)
+
+    st.divider()
+    st.markdown("### Sobre")
+    st.markdown(
+        "[Repo no GitHub](https://github.com/EduardoMartins-Dev/Quantum-Simulator)"
+    )
+
+custom_ops: list = []
+if kind == "custom":
+    st.subheader("Construtor de circuito")
+    if "ops" not in st.session_state:
+        st.session_state.ops = []
+
+    col1, col2, col3, col4 = st.columns([2, 2, 2, 1])
+    with col1:
+        gate = st.selectbox("Porta", ["H", "X", "Y", "Z", "P", "CNOT"])
+    with col2:
+        if gate == "CNOT":
+            control = st.number_input("Control", 0, num_qubits - 1, 0, step=1)
+        else:
+            qbit = st.number_input("Qubit", 0, num_qubits - 1, 0, step=1)
+    with col3:
+        if gate == "CNOT":
+            target = st.number_input("Target", 0, num_qubits - 1, min(1, num_qubits - 1), step=1)
+        elif gate == "P":
+            theta = st.number_input("θ (rad)", value=float(np.pi / 2), step=0.1, format="%.4f")
+        else:
+            st.empty()
+    with col4:
+        st.write("")
+        st.write("")
+        if st.button("Adicionar"):
+            if gate == "CNOT":
+                if control != target:
+                    st.session_state.ops.append({"gate": "CNOT", "control": int(control), "target": int(target)})
+            elif gate == "P":
+                st.session_state.ops.append({"gate": "P", "q": int(qbit), "theta": float(theta)})
+            else:
+                st.session_state.ops.append({"gate": gate, "q": int(qbit)})
+
+    if st.session_state.ops:
+        st.write("**Operações:**")
+        for i, op in enumerate(st.session_state.ops):
+            cols = st.columns([6, 1])
+            cols[0].code(
+                f"{op['gate']}("
+                + (f"{op['control']}, {op['target']}" if op["gate"] == "CNOT"
+                   else f"{op['q']}, θ={op['theta']:.3f}" if op["gate"] == "P"
+                   else str(op["q"]))
+                + ")"
+            )
+            if cols[1].button("🗑", key=f"del_{i}"):
+                st.session_state.ops.pop(i)
+                st.rerun()
+        if st.button("Limpar tudo"):
+            st.session_state.ops = []
+            st.rerun()
+
+    custom_ops = st.session_state.ops
+
+run = st.button("▶️ Executar circuito", type="primary", use_container_width=True)
+
+if run:
+    if seed:
+        np.random.seed(int(seed))
+
+    if kind == "bell":
+        circuit = build_bell()
+    elif kind == "ghz":
+        circuit = build_ghz()
+    elif kind == "super":
+        circuit = build_superposition(num_qubits)
+    else:
+        if not custom_ops:
+            st.warning("Adicione pelo menos uma porta antes de executar.")
+            st.stop()
+        circuit = build_custom(num_qubits, custom_ops)
+
+    col_left, col_right = st.columns([1, 1])
+
+    with col_left:
+        st.subheader("Circuito")
+        st.code(str(circuit))
+        st.subheader("Vetor de estado")
+        st.code(circuit.get_state_vector())
+        st.subheader("Probabilidades teóricas")
+        theoretical = circuit.get_probabilities()
+        st.dataframe(
+            {"Estado": [f"|{k}⟩" for k in sorted(theoretical)],
+             "Probabilidade": [f"{theoretical[k] * 100:.2f}%" for k in sorted(theoretical)]},
+            hide_index=True,
+            use_container_width=True,
+        )
+
+    with col_right:
+        st.subheader(f"Medições ({shots} shots)")
+        results = QuantumSimulator.run(circuit, shots=shots)
+        probs = QuantumSimulator.get_probabilities(results)
+
+        items = sorted(results.items())
+        states = [k for k, _ in items]
+        counts = [v for _, v in items]
+
+        fig, ax = plt.subplots(figsize=(8, 5))
+        ax.bar(states, counts, color="#2E75B6", edgecolor="black")
+        ax.set_xlabel("Estado")
+        ax.set_ylabel("Contagens")
+        ax.grid(axis="y", alpha=0.3)
+        total = sum(counts)
+        for i, c in enumerate(counts):
+            ax.text(i, c, f"{100 * c / total:.1f}%", ha="center", va="bottom")
+        plt.tight_layout()
+        st.pyplot(fig)
+        plt.close(fig)
+
+        st.dataframe(
+            {"Estado": [f"|{s}⟩" for s in states],
+             "Contagem": counts,
+             "Empírico": [f"{probs[s] * 100:.2f}%" for s in states]},
+            hide_index=True,
+            use_container_width=True,
+        )
+else:
+    st.info("👈 Escolha um exemplo na barra lateral e clique em **Executar circuito**.")

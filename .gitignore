@@ -8,7 +8,7 @@ env/
 prompt.md
 *.png
 quantum_results*.png
-
-.idea/
-.vscode/
+.*
+!.gitignore
+!.streamlit/
 .DS_Store
